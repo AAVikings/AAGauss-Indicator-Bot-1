@@ -22,17 +22,17 @@
     <Compile Include="Commons.js">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Linear-Regression-Curve\LRCIndicator.js" />
-    <Compile Include="Linear-Regression-Curve\User.bot.js" />
-    <Compile Include="Linear-Regression-Curve\User.bot.js_bkp.js" />
-    <Compile Include="Linear-Regression-Curve\User.bot_bkp_2.js" />
+    <Compile Include="LRC-Channel\LRCIndicator.js" />
+    <Compile Include="LRC-Channel\User.bot.js" />
+    <Compile Include="LRC-Channel\User.bot.js_bkp.js" />
+    <Compile Include="LRC-Channel\User.bot_bkp_2.js" />
     <Content Include="obj\Debug\AABruce.njsproj.FileListAbsolute.txt" />
     <Content Include="obj\Debug\AACarol.njsproj.FileListAbsolute.txt" />
     <Content Include="obj\Debug\AACharly.njsproj.FileListAbsolute.txt" />
     <Content Include="this.bot.config.json" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Linear-Regression-Curve\" />
+    <Folder Include="LRC-Channel\" />
     <Folder Include="bin" />
     <Folder Include="obj" />
     <Folder Include="obj\Debug" />

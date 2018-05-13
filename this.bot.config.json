@@ -1,85 +1,58 @@
 {
-  "displayName": "Gauss",
-  "codeName": "AAGauss",
-  "type": "Indicator",
-  "version": {
-    "major": 1,
-    "minor": 0,
-    "patch": 0
-  },
-  "devTeam": "AAArtudito",
-  "profilePicture": "Gauss.png",
-  "dataSetVersion": "dataSet.V1",
-  "processes": [
-    {
-        "name": "Linear-Regression-Curve",
-        "description": "Produces files with lrc15, lrc30 and lrc60 on a daily format.",
-        "startMode": {
-            "allMonths": {
-                "run": "false",
-                "minYear": "",
-                "maxYear": ""
-            },
-            "oneMonth": {
-                "run": "false",
-                "year": "",
-                "month": ""
-            },
-            "noTime": {
-                "run": "true"
-            },
-            "fixedInterval": {
-                "run": "false",
-                "interval": 0
-            }
-        },
-        "normalWaitTime": 60000,
-        "retryWaitTime": 10000,
-        "sleepWaitTime": 3600000,
-        "comaWaitTime": 86400000,
-        "statusDependencies": [
-            {
-                "devTeam": "AAMasters",
-                "bot": "AAOlivia",
-                "botVersion": {
-                    "major": 1,
-                    "minor": 0
+    "displayName": "Gauss",
+    "codeName": "AAGauss",
+    "type": "Extraction",
+    "version": {
+        "major": 1,
+        "minor": 0,
+        "patch": 0
+    },
+    "devTeam": "AAMasters",
+    "profilePicture": "Gauss.png",
+    "dataSetVersion": "dataSet.V1",
+    "processes": [
+        {
+            "name": "LRC-Channel",
+            "description": "Produces files with the LRC Channel on a daily format.",
+            "startMode": {
+                "allMonths": {
+                    "run": "true",
+                    "minYear": "2018",
+                    "maxYear": "2018"
                 },
-                "process": "Multi-Period-Daily",
-                "dataSetVersion": "dataSet.V1"
-            }
-        ]
-    }
-  ],
-  "products": [
-    {
-      "codeName": "LRC",
-      "displayName": "LRC",
-      "description": "A set of files per period that contains lrc15, lrc30 and lrc60.",
-      "storageAccount": "aagauss",
-      "dataSets": [
-        {
-            "codeName": "Multi-Period-Daily",
-            "type": "Daily Files",
-            "validPeriods": [ "30-min", "20-min", "15-min", "10-min" ],
-            "filePath": "AAMasters/AAGauss.1.0/AACloud.1.1/@Exchange/dataSet.V1/Output/LRC/Multi-Period-Daily/@Period/@Year/@Month/@Day",
-            "fileName": "@AssetA_@AssetB.json"
+                "oneMonth": {
+                    "run": "false",
+                    "year": "",
+                    "month": ""
+                },
+                "noTime": {
+                    "run": "false"
+                },
+                "fixedInterval": {
+                    "run": "false",
+                    "interval": 0
+                }
+            },
+            "normalWaitTime": 60000,
+            "retryWaitTime": 10000,
+            "sleepWaitTime": 3600000,
+            "comaWaitTime": 86400000,
+            "statusDependencies": [
+                {
+                    "devTeam": "AAMasters",
+                    "bot": "AAGauss",
+                    "botVersion": {
+                        "major": 1,
+                        "minor": 0
+                    },
+                    "process": "LRC-Channel",
+                    "dataSetVersion": "dataSet.V1"
+                }
+            ]
         }
-      ],
-      "exchangeList": [
-        {
-          "name": "Poloniex"
-        }
-      ],
-      "plotter": {
-        "devTeam": "AAMasters",
-        "codeName": "PlottersCandlesVolumes",
-        "moduleName": "Candles"
-      }
+    ],
+    "storage": {
+        "sas": "?sv=2017-07-29&ss=b&srt=sco&sp=rl&se=2018-12-31T22:59:59Z&st=2018-04-01T12:59:54Z&spr=https&sig=Fre%2FUWrF9IAXNnJSOZ%2F5q5LUow9uno7dXg5pGZ3YDzo%3D",
+        "fileUri": "https://aamasters.blob.core.windows.net"
     }
-  ],
-  "storage": {
-    "sas": "",
-    "fileUri": "https://aagaus.blob.core.windows.net"
-  }
 }
