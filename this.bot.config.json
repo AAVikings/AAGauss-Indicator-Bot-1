@@ -1,36 +1,34 @@
 {
     "displayName": "Gauss",
     "codeName": "AAGauss",
-    "type": "Extraction",
+    "type": "Indicator",
     "version": {
         "major": 1,
         "minor": 0,
         "patch": 0
     },
     "devTeam": "AAMasters",
-    "profilePicture": "Gauss.png",
     "dataSetVersion": "dataSet.V1",
     "processes": [
         {
-            "name": "LRC-Channel",
+            "name": "Multi-Period-Daily",
             "description": "Produces files with the LRC Channel on a daily format.",
             "startMode": {
-                "allMonths": {
+                "live": {
+                    "run": "false",
+                    "resumeExecution": "false"
+                },
+                "backtest": {
                     "run": "true",
-                    "minYear": "2018",
-                    "maxYear": "2018"
+                    "beginDatetime": "2018-04-01T00:00:00.000Z",
+                    "endDatetime": "2018-04-30T11:59:00.000Z",
+                    "waitTime": 500
                 },
-                "oneMonth": {
+                "competition": {
                     "run": "false",
-                    "year": "",
-                    "month": ""
-                },
-                "noTime": {
-                    "run": "false"
-                },
-                "fixedInterval": {
-                    "run": "false",
-                    "interval": 0
+                    "beginDatetime": "2018-04-27T16:00:00.000Z",
+                    "endDatetime": "2018-04-28T16:05:00.000Z",
+                    "resumeExecution": "false"
                 }
             },
             "normalWaitTime": 60000,
@@ -45,14 +43,48 @@
                         "major": 1,
                         "minor": 0
                     },
-                    "process": "LRC-Channel",
+                    "process": "Multi-Period-Daily",
+                    "dataSetVersion": "dataSet.V1"
+                },
+                {
+                    "devTeam": "AAMasters",
+                    "bot": "AAOlivia",
+                    "botVersion": {
+                        "major": 1,
+                        "minor": 0
+                    },
+                    "process": "Multi-Period-Daily",
                     "dataSetVersion": "dataSet.V1"
                 }
             ]
         }
     ],
-    "storage": {
-        "sas": "?sv=2017-07-29&ss=b&srt=sco&sp=rl&se=2018-12-31T22:59:59Z&st=2018-04-01T12:59:54Z&spr=https&sig=Fre%2FUWrF9IAXNnJSOZ%2F5q5LUow9uno7dXg5pGZ3YDzo%3D",
-        "fileUri": "https://aamasters.blob.core.windows.net"
-    }
+    "products": [
+        {
+            "codeName": "LRCChannel",
+            "displayName": "LRCChannel",
+            "description": "Two sets of files per period that contains candles.",
+            "storageAccount": "aagauss",
+            "dataSets": [
+                {
+                    "codeName": "Multi-Period-Daily",
+                    "type": "Daily Files",
+                    "validPeriods": [ "45-min", "40-min", "30-min", "20-min", "15-min", "10-min", "05-min", "04-min", "03-min", "02-min", "01-min" ],
+                    "filePath": "AAMasters/AAGauss.1.0/AACloud.1.1/@Exchange/dataSet.V1/Output/LRC-Channel/Multi-Period-Daily/@Period/@Year/@Month/@Day",
+                    "fileName": "@AssetA_@AssetB.json"
+                }
+            ],
+            "exchangeList": [
+                {
+                    "name": "Poloniex"
+                }
+            ],
+            "plotter": {
+                "devTeam": "AAMasters",
+                "codeName": "Plotter",
+                "moduleName": "LRCChannel"
+            }
+        }
+    ]
+
 }
