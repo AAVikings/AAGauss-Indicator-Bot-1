@@ -317,7 +317,7 @@ exports.newUserBot = function newUserBot(BOT, COMMONS, UTILITIES, DEBUG_MODULE, 
 
                             let lrcPoints = [];
                             lrcPoints.push(0); //firstCandleBeginTime               0
-                            lrcPoints.push(0); //lastCandleBeginTime                1
+                            lrcPoints.push(0); //firstCandleEndTime                 1
                             lrcPoints.push(0); //lastCandleBeginTime                2
                             lrcPoints.push(0); //lastCandleEndTime                  3
                             lrcPoints.push(0); //minimumChannelValue                4
@@ -329,8 +329,8 @@ exports.newUserBot = function newUserBot(BOT, COMMONS, UTILITIES, DEBUG_MODULE, 
 
                             calculateLRC(candleArray, lrcPoints);
 
-                            let firstCandle = candleArray[0];
-                            let lastCandle = candleArray[candleArray.length - 1];
+                            let lastCandle = candleArray[0];
+                            let firstCandle = candleArray[candleArray.length - 1];
                             lrcPoints[0] = firstCandle[4];
                             lrcPoints[1] = firstCandle[5];
                             lrcPoints[2] = lastCandle[4];
@@ -477,7 +477,7 @@ exports.newUserBot = function newUserBot(BOT, COMMONS, UTILITIES, DEBUG_MODULE, 
                                         }
 
                                         // We keep a record of the last candle used for the time period
-                                        lastCandles[n] = lrcChannel[2];
+                                        lastCandles[n] = lrcChannel[0];
 
                                         controlLoop();
                                     }
@@ -506,7 +506,7 @@ exports.newUserBot = function newUserBot(BOT, COMMONS, UTILITIES, DEBUG_MODULE, 
                                         }
 
                                         // We keep a record of the last candle used for the time period
-                                        lastCandles[n] = lrcChannel[2];
+                                        lastCandles[n] = lrcChannel[0];
 
                                         controlLoop();
                                     }
