@@ -14,24 +14,25 @@
             "name": "Multi-Period-Daily",
             "description": "Produces files with the LRC Channel on a daily format.",
             "startMode": {
-                "live": {
-                    "run": "false",
-                    "resumeExecution": "false"
+                "allMonths": {
+                  "run": "false",
+                  "minYear": "",
+                  "maxYear": ""
                 },
-                "backtest": {
-                    "run": "true",
-                    "beginDatetime": "2018-04-01T00:00:00.000Z",
-                    "endDatetime": "2018-04-30T11:59:00.000Z",
-                    "waitTime": 500
+                "oneMonth": {
+                  "run": "false",
+                  "year": "",
+                  "month": ""
                 },
-                "competition": {
-                    "run": "false",
-                    "beginDatetime": "2018-04-27T16:00:00.000Z",
-                    "endDatetime": "2018-04-28T16:05:00.000Z",
-                    "resumeExecution": "false"
+                "noTime": {
+                  "run": "true"
+                },
+                "fixedInterval": {
+                  "run": "false",
+                  "interval": 0
                 }
-            },
-            "normalWaitTime": 60000,
+              },
+            "normalWaitTime": 100,
             "retryWaitTime": 10000,
             "sleepWaitTime": 3600000,
             "comaWaitTime": 86400000,

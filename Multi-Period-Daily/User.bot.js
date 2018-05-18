@@ -6,7 +6,9 @@ exports.newUserBot = function newUserBot(BOT, COMMONS, UTILITIES, DEBUG_MODULE, 
     const USE_PARTIAL_LAST_CANDLE = true; // When running live the last candle generated is a partial candle.
 
     let bot = BOT;
-    
+
+    const ONE_MIN_IN_MILISECONDS = 60 * 1000;
+
     const MODULE_NAME = "User Bot";
 
     const EXCHANGE_NAME = "Poloniex";
@@ -71,7 +73,8 @@ exports.newUserBot = function newUserBot(BOT, COMMONS, UTILITIES, DEBUG_MODULE, 
 
             let market = global.MARKET;
             let reportFilePath = EXCHANGE_NAME + "/Processes/" + bot.process;
-
+            let executionTime;
+            let maxCandleTime;
             let lastCandles;
             
             getContextVariables();
@@ -81,8 +84,8 @@ exports.newUserBot = function newUserBot(BOT, COMMONS, UTILITIES, DEBUG_MODULE, 
                 try {
 
                     if (FULL_LOG === true) { logger.write("[INFO] start -> getContextVariables -> Entering function."); }
-                    
-                    let reportKey = "AAMasters" + "-" + "AAGauss" + "-" + "Multi-Period-Daily" + "-" + "dataSet.V1";
+
+                    let reportKey = "AAMasters" + "-" + "AAOlivia" + "-" + "Multi-Period-Daily" + "-" + "dataSet.V1";
                     if (FULL_LOG === true) { logger.write("[INFO] start -> getContextVariables -> reportKey = " + reportKey); }
 
                     if (statusDependencies.statusReports.get(reportKey).status === "Status Report is corrupt.") {
@@ -92,19 +95,52 @@ exports.newUserBot = function newUserBot(BOT, COMMONS, UTILITIES, DEBUG_MODULE, 
                     }
 
                     let thisReport = statusDependencies.statusReports.get(reportKey).file;
+
+                    if (thisReport.lastFile === undefined) {
+                        logger.write("[WARN] start -> getContextVariables -> Undefined Last File. -> reportKey = " + reportKey);
+
+                        let customOK = {
+                            result: global.CUSTOM_OK_RESPONSE.result,
+                            message: "Dependency not ready."
+                        }
+                        logger.write("[WARN] start -> getContextVariables -> customOK = " + customOK.message);
+                        callBackFunction(customOK);
+                        return;
+                    }
+
+                    maxCandleTime = new Date(Date.UTC(thisReport.lastFile.year, thisReport.lastFile.month - 1, thisReport.lastFile.days, thisReport.lastFile.hours, thisReport.lastFile.minutes));
+                    
+                    reportKey = "AAMasters" + "-" + "AAGauss" + "-" + "Multi-Period-Daily" + "-" + "dataSet.V1";
+                    if (FULL_LOG === true) { logger.write("[INFO] start -> getContextVariables -> reportKey = " + reportKey); }
+
+                    if (statusDependencies.statusReports.get(reportKey).status === "Status Report is corrupt.") {
+                        logger.write("[ERROR] start -> getContextVariables -> Can not continue because self dependecy Status Report is corrupt. Aborting Process.");
+                        callBackFunction(global.DEFAULT_FAIL_RESPONSE);
+                        return;
+                    }
+
+                    thisReport = statusDependencies.statusReports.get(reportKey).file;
                     if (thisReport.lastCandles !== undefined) {
                         logger.write("[INFO] start -> getContextVariables -> thisReport.lastCandles: " + JSON.stringify(thisReport.lastCandles));
                         lastCandles = thisReport.lastCandles;
 
-                        periodsLoop();
+                        buildLRCPoints();
 
                     } else {
+
+                        if (FULL_LOG === true) { logger.write("[INFO] start -> getContextVariables -> First time running the bot."); }
+
                         lastCandles = [];
+
                         for (n = 0; n < global.dailyFilePeriods.length; n++) {
                             lastCandles.push(0);
                         }
 
-                        periodsLoop();
+                        lastCandles[10] = new Date(Date.UTC(2018, 3).valueOf());
+
+                        if (FULL_LOG === true) { logger.write("[INFO] start -> getContextVariables -> Starting at: " + new Date(lastCandles[10]).toISOString()); }
+
+                        buildLRCPoints();
 
                     }
 
@@ -118,6 +154,35 @@ exports.newUserBot = function newUserBot(BOT, COMMONS, UTILITIES, DEBUG_MODULE, 
                 }
             }
 
+            function buildLRCPoints() {
+
+                if (FULL_LOG === true) { logger.write("[INFO] start -> buildLRCPoints -> Entering function."); }
+
+                advanceTime();
+
+                function advanceTime() {
+
+                    if (FULL_LOG === true) { logger.write("[INFO] start -> buildLRCPoints -> advanceTime -> Entering function."); }
+
+                    executionTime = new Date(lastCandles[10].valueOf() + ONE_MIN_IN_MILISECONDS);
+                    
+                    if (FULL_LOG === true) { logger.write("[INFO] start -> buildLRCPoints -> advanceTime -> New processing time @ " + executionTime.toISOString()); }
+
+                    /* Validation that we are not going past the head of the market. */
+
+                    if (executionTime.valueOf() > maxCandleTime.valueOf()) {
+
+                        if (FULL_LOG === true) { logger.write("[INFO] start -> buildLRCPoints -> advanceTime -> Head of the market found @ " + maxCandleTime.toISOString()); }
+
+                        callBackFunction(global.DEFAULT_OK_RESPONSE); // Here is where we finish processing and wait for the platform to run this module again.
+                        return;
+                    }
+
+                    periodsLoop();
+
+                }
+            }
+
             function periodsLoop() {
 
                 let n = 0   // loop Variable representing each possible period as defined at the periods array.
@@ -126,7 +191,7 @@ exports.newUserBot = function newUserBot(BOT, COMMONS, UTILITIES, DEBUG_MODULE, 
 
                 function loopBody() {
 
-                    if (FULL_LOG === true) { logger.write("[INFO] start -> buildLRCChannels -> periodsLoop -> loopBody -> Entering function. Time: " + bot.processDatetime.toISOString() + ". Loop: "+n); }
+                    if (FULL_LOG === true) { logger.write("[INFO] start -> buildLRCChannels -> periodsLoop -> loopBody -> Entering function. Time: " + executionTime.toISOString() + ". Loop: "+n); }
 
                     const outputPeriod = global.dailyFilePeriods[n][0];
                     const folderName = global.dailyFilePeriods[n][1];
@@ -134,19 +199,20 @@ exports.newUserBot = function newUserBot(BOT, COMMONS, UTILITIES, DEBUG_MODULE, 
                     isTimeToRun();
 
                     function isTimeToRun() {
-                        let nextExecution = lastCandles[n] + outputPeriod;
-                        if (bot.processDatetime.valueOf() >= nextExecution) {
-                            getCandles();
+                        let nextExecution = lastCandles[n].valueOf() + outputPeriod;
+                        if (executionTime.valueOf() >= nextExecution) {
+                            getLRCPoints();
                         } else {
 
-                            if (FULL_LOG === true) logger.write("[INFO] start -> periodsLoop -> loopBody -> It's not time to run this period.");
+                            if (FULL_LOG === true) logger.write("[INFO] start -> periodsLoop -> loopBody -> It's not time to run this period. Next Execution: " + new Date(nextExecution).toISOString());
+                            
                             controlLoop();
                         }
                     }
 
-                    function getCandles() {
+                    function getLRCPoints() {
 
-                        if (FULL_LOG === true) { logger.write("[INFO] start -> getCandles -> Entering function."); }
+                        if (FULL_LOG === true) { logger.write("[INFO] start -> getLRCPoints -> Entering function."); }
 
                         const maxLRCDepth = 63;
                         const maxBackwardsCount = 60;
@@ -154,11 +220,11 @@ exports.newUserBot = function newUserBot(BOT, COMMONS, UTILITIES, DEBUG_MODULE, 
                         let backwardsCount = 0;
                         let candleArray = [];
 
-                        let queryDate = new Date(bot.processDatetime);
+                        let queryDate = new Date(executionTime);
                         let candleFile = getDailyFile(queryDate, onDailyFileReceived);
 
                         function onDailyFileReceived(err, candleFile) {
-                            if (FULL_LOG === true) { logger.write("[INFO] start -> getCandles -> onDailyFileReceived."); }
+                            if (FULL_LOG === true) { logger.write("[INFO] start -> getLRCPoints -> onDailyFileReceived."); }
 
                             if (err.result === global.DEFAULT_OK_RESPONSE.result) {
                                 for (let i = 0; i < candleFile.length; i++) {
@@ -180,17 +246,17 @@ exports.newUserBot = function newUserBot(BOT, COMMONS, UTILITIES, DEBUG_MODULE, 
                                     candle.begin = candleFile[i][4];
                                     candle.end = candleFile[i][5];
 
-                                    if (LOG_FILE_CONTENT === true) { logger.write("[INFO] Candle Date: " + new Date(candle.begin).toISOString() + ". Process Date: " + bot.processDatetime.toISOString()); }
+                                    if (LOG_FILE_CONTENT === true) { logger.write("[INFO] Candle Date: " + new Date(candle.begin).toISOString() + ". Process Date: " + executionTime.toISOString()); }
 
-                                    if (candleArray.length < maxLRCDepth && candle.begin <= bot.processDatetime.valueOf()) {
+                                    if (candleArray.length < maxLRCDepth && candle.begin <= executionTime.valueOf()) {
                                         candleArray.push(candleFile[i]);
                                     }
                                 }
 
-                                if (FULL_LOG === true) { logger.write("[INFO] start -> getCandles -> Candle Array Length: " + candleArray.length); }
+                                if (FULL_LOG === true) { logger.write("[INFO] start -> getLRCPoints -> Candle Array Length: " + candleArray.length); }
 
                                 if (candleArray.length >= maxLRCDepth) {
-                                    if (FULL_LOG === true) { logger.write("[INFO] start -> getCandles -> All candles available proceed with LRC calculations."); }
+                                    if (FULL_LOG === true) { logger.write("[INFO] start -> getLRCPoints -> All candles available proceed with LRC calculations."); }
 
                                     let lrcChannel = performLRCCalculations(candleArray);
                                     saveChannel(lrcChannel);
@@ -210,7 +276,7 @@ exports.newUserBot = function newUserBot(BOT, COMMONS, UTILITIES, DEBUG_MODULE, 
 
                         function getDailyFile(dateTime, onDailyFileReceived) {
                             try {
-                                if (FULL_LOG === true) { logger.write("[INFO] start -> getCandles -> getDailyFile -> Entering function."); }
+                                if (FULL_LOG === true) { logger.write("[INFO] start -> getLRCPoints -> getDailyFile -> Entering function."); }
 
                                 let datePath = dateTime.getUTCFullYear() + "/" + utilities.pad(dateTime.getUTCMonth() + 1, 2) + "/" + utilities.pad(dateTime.getUTCDate(), 2);
                                 let filePath = "AAMasters/AAOlivia.1.0/AACloud.1.1/Poloniex/dataSet.V1/Output/Candles/Multi-Period-Daily/" + folderName + "/" + datePath;
@@ -220,18 +286,18 @@ exports.newUserBot = function newUserBot(BOT, COMMONS, UTILITIES, DEBUG_MODULE, 
 
                                 function onFileReceived(err, text) {
                                     if (err.result === global.DEFAULT_OK_RESPONSE.result) {
-                                        if (FULL_LOG === true) { logger.write("[INFO] start -> getCandles -> getDailyFile -> onFileReceived > Entering Function."); }
+                                        if (FULL_LOG === true) { logger.write("[INFO] start -> getLRCPoints -> getDailyFile -> onFileReceived > Entering Function."); }
 
                                         let candleFile = JSON.parse(text);
                                         onDailyFileReceived(global.DEFAULT_OK_RESPONSE, candleFile);
                                     } else {
-                                        logger.write("[ERROR] start -> getCandles -> getDailyFile -> onFileReceived -> Failed to get the file. Will abort the process and request a retry.");
+                                        logger.write("[ERROR] start -> getLRCPoints -> getDailyFile -> onFileReceived -> Failed to get the file. Will abort the process and request a retry.");
                                         callBackFunction(global.DEFAULT_RETRY_RESPONSE);
                                         return;
                                     }
                                 }
                             } catch (err) {
-                                logger.write("[ERROR] start -> getCandles -> getDailyFile -> err = " + err.message);
+                                logger.write("[ERROR] start -> getLRCPoints -> getDailyFile -> err = " + err.message);
                                 callBackFunction(global.DEFAULT_RETRY_RESPONSE);
                             }
                         }
@@ -249,78 +315,37 @@ exports.newUserBot = function newUserBot(BOT, COMMONS, UTILITIES, DEBUG_MODULE, 
 
                             if (USE_PARTIAL_LAST_CANDLE === false) candleArray = candleArray.slice(0, candleArray.length - 1);
 
-                            let lrcPoints = calculateLRC(candleArray);
+                            let lrcPoints = [];
+                            lrcPoints.push(0); //firstCandleBeginTime               0
+                            lrcPoints.push(0); //lastCandleBeginTime                1
+                            lrcPoints.push(0); //lastCandleBeginTime                2
+                            lrcPoints.push(0); //lastCandleEndTime                  3
+                            lrcPoints.push(0); //minimumChannelValue                4
+                            lrcPoints.push(0); //middleChannelValue                 5
+                            lrcPoints.push(0); //maximumChannelValue                6
+
+                            if (LOG_FILE_CONTENT === true)
+                                lrcPoints.push(candleArray); //Entire candle array  7
+
+                            calculateLRC(candleArray, lrcPoints);
 
                             let firstCandle = candleArray[0];
                             let lastCandle = candleArray[candleArray.length - 1];
+                            lrcPoints[0] = firstCandle[4];
+                            lrcPoints[1] = firstCandle[5];
+                            lrcPoints[2] = lastCandle[4];
+                            lrcPoints[3] = lastCandle[5];
 
-                            lrcPoints[6] = firstCandle[4];
-                            lrcPoints[7] = lastCandle[4];
-
-                            let lrc15 = lrcPoints[1];
-                            let lrc30 = lrcPoints[2];
-                            let lrc60 = lrcPoints[3];
-                            
-                            /*
-                            * We take the last candle (because it's the newest) and calculate the LRC points again to detect the tilt.
-                            */
-
-                            let previousCandleArray = candleArray.slice(0, candleArray.length - 1);
-                            let lrcPreviousPoints = calculateLRC(previousCandleArray);
-
-                            let previousLrc15 = lrcPreviousPoints.minimumChannelValue;
-                            let previousLrc30 = lrcPreviousPoints.middleChannelValue;
-                            let previousLrc60 = lrcPreviousPoints.maximumChannelValue;
-
-                            if (lrc60 < lrc30 && lrc15 > lrc30 && lrc30 < lrc15) {
-                                if (lrc15 > previousLrc15 && lrc30 > previousLrc30 && lrc60 > previousLrc60) {
-                                    lrcPoints[4] = 1; // The channel points UP
-                                    lrcPoints[5] += "1.";
-                                }
-                            }
-
-                            if (lrc15 < lrc30 && lrc60 > lrc30 && lrc30 < lrc60) {
-                                if (lrc15 < previousLrc15 && lrc30 < previousLrc30 && lrc60 < previousLrc60) {
-                                    lrcPoints[4] = -1; // The channel points DOWN
-                                    lrcPoints[5] += "2.";
-                                }
-                            }
-
-                            if (lrc15 < previousLrc15 && lrc30 <= previousLrc30) {
-                                // 15 AND 30 changed direction from up to down
-                                lrcPoints[4] = -1;
-                                lrcPoints[5] += "3a.";
-                            }
-
-                            if (lrc15 > previousLrc15 && lrc30 >= previousLrc30) {
-                                // 15 AND 30 changed direction from down to up
-                                lrcPoints[4] = 1;
-                                lrcPoints[5] += "3b.";
-                            }
-
-                            let logMessage = bot.processDatetime.toISOString() + "\t" + lrcPoints[5] + "\t" + lrcPoints[4] + "\t" + lrc15 + "\t" + lrc30 + "\t" + lrc60;
-
-                            if (FULL_LOG === true) { logger.write("[INFO] start -> getChannelTilt -> performLRCCalculations -> Results: " + logMessage); }
+                            if (FULL_LOG === true) {
+                                logger.write("[INFO] start -> getChannelTilt -> performLRCCalculations -> LRC Points calculation results: " + JSON.stringify(lrcPoints)); }
 
                             return lrcPoints;
                         }
 
-                        function calculateLRC(candlesArray) {
+                        function calculateLRC(candlesArray, lrcPoints) {
 
                             if (FULL_LOG === true) { logger.write("[INFO] start -> getChannelTilt -> calculateLRC -> Entering function."); }
-
-                            let lrcPoints = [];
-                            lrcPoints.push(bot.processDatetime.valueOf()); //Date   0
-                            lrcPoints.push(0); //minimumChannelValue                1
-                            lrcPoints.push(0); //middleChannelValue                 2
-                            lrcPoints.push(0); //maximumChannelValue                3
-                            lrcPoints.push(0); //channelTilt                        4
-                            lrcPoints.push(""); //rule                              5
-                            lrcPoints.push(0); //firstCandleTime                    6
-                            lrcPoints.push(0); //lastCandleTime                     7
-
-                            if (LOG_FILE_CONTENT === true) lrcPoints.push(candlesArray);
-
+                            
                             let lrcMinIndicator = new LRCIndicator(15);
                             let lrcMidIndicator = new LRCIndicator(30);
                             let lrcMaxIndicator = new LRCIndicator(60);
@@ -333,24 +358,19 @@ exports.newUserBot = function newUserBot(BOT, COMMONS, UTILITIES, DEBUG_MODULE, 
                                 lrcMidIndicator.update(averagePrice);
                                 lrcMaxIndicator.update(averagePrice);
                             }
-
-                            if (FULL_LOG === true) {
-                                logger.write("[INFO] start -> getChannelTilt -> calculateLRC -> Values: " + "lrcMinIndicator: " + lrcMinIndicator.result + ". lrcMidIndicator: "
-                                    + lrcMidIndicator.result + ". lrcMaxIndicator: " + lrcMaxIndicator.result);
-                            }
-
+                            
                             /*
-                                * Only if there is enough history the result will be calculated
-                                */
+                            * Only if there is enough history the result will be calculated
+                            */
                             if (lrcMinIndicator.result != false && lrcMidIndicator.result != false && lrcMaxIndicator.result != false) {
-                                lrcPoints[1] = lrcMinIndicator.result;
-                                lrcPoints[2] = lrcMidIndicator.result;
-                                lrcPoints[3] = lrcMaxIndicator.result;
+                                lrcPoints[4] = lrcMinIndicator.result;
+                                lrcPoints[5] = lrcMidIndicator.result;
+                                lrcPoints[6] = lrcMaxIndicator.result;
 
                                 return lrcPoints;
                             } else {
                                 logger.write("[ERROR] start -> getChannelTilt -> calculateLRC -> There is not enough history to calculate the LRC.");
-                                callBackFunction(global.DEFAULT_RETRY_RESPONSE);
+                                callBackFunction(global.DEFAULT_FAIL_RESPONSE);
                             }
                         }
 
@@ -360,7 +380,7 @@ exports.newUserBot = function newUserBot(BOT, COMMONS, UTILITIES, DEBUG_MODULE, 
 
                                 if (FULL_LOG === true) { logger.write("[INFO] start -> saveChannel -> Entering function."); }
                                 let fileContent;
-                                let datePath = bot.processDatetime.getUTCFullYear() + "/" + utilities.pad(bot.processDatetime.getUTCMonth() + 1, 2) + "/" + utilities.pad(bot.processDatetime.getUTCDate(), 2);
+                                let datePath = executionTime.getUTCFullYear() + "/" + utilities.pad(executionTime.getUTCMonth() + 1, 2) + "/" + utilities.pad(executionTime.getUTCDate(), 2);
                                 let filePath = bot.filePathRoot + "/Output/LRC-Channel/Multi-Period-Daily/" + folderName + "/" + datePath;
                                 let fileName = market.assetA + '_' + market.assetB + ".json"
 
@@ -457,7 +477,7 @@ exports.newUserBot = function newUserBot(BOT, COMMONS, UTILITIES, DEBUG_MODULE, 
                                         }
 
                                         // We keep a record of the last candle used for the time period
-                                        lastCandles[n] = lrcChannel[7];
+                                        lastCandles[n] = lrcChannel[2];
 
                                         controlLoop();
                                     }
@@ -486,7 +506,7 @@ exports.newUserBot = function newUserBot(BOT, COMMONS, UTILITIES, DEBUG_MODULE, 
                                         }
 
                                         // We keep a record of the last candle used for the time period
-                                        lastCandles[n] = lrcChannel[7];
+                                        lastCandles[n] = lrcChannel[2];
 
                                         controlLoop();
                                     }
